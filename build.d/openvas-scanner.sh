@@ -10,10 +10,6 @@ tar -zxf $openvas.tar.gz
 cd /build/*/
 
 # Install dev dependency
-apt install -y libkrb5-dev libkdb5-10 libmagic-dev \
-            capnproto libclang-dev libpcap-dev \
-            libsnmp-dev libssl-dev libgcrypt20-dev libgcrypt20 \
-            libgpg-error-dev dpkg-dev 
 
 mkdir -p build
 cd build

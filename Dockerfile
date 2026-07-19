@@ -2,7 +2,7 @@
 
 # Stage 0: 
 # Start with ovasbase with running dependancies installed.
-FROM immauss/ovasbase:latest AS builder
+FROM immauss/ovasbase:beta AS builder
 
 # Ensure apt doesn't ask any questions 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -10,6 +10,7 @@ ENV LANG=C.UTF-8
 ARG TAG
 ENV VER="$TAG"
 ARG TARGETARCH
+ENV PATH="/opt/venv/bin:${PATH}"
 
 # Build everything that requires a compiler here and install to /artifacts for copy to 2nd stage.
 # we don't care about layer count here, in fact multiple layers helps when there are problems witha build
@@ -40,7 +41,7 @@ RUN bash /build.d/gsad.sh
 # Stage 1: Start again with the ovasbase. Dependancies already installed
 # This target is for the image with no database
 # Makes rebuilds for data refresh and scripting changes faster. 
-FROM immauss/ovasbase:latest AS slim
+FROM immauss/ovasbase:beta AS slim
 LABEL maintainer="scott@immauss.com" \
       version="$VER-slim" \
       url="https://hub.docker.com/r/immauss/openvas" \
@@ -51,11 +52,9 @@ ENV LANG=C.UTF-8
 RUN set -eux; \
     apt-get update; \
     apt-get -y upgrade; \
-    apt-get install capnproto -y; \
-    apt remove python3-redis -y; \
     apt-get -y autoremove --purge; \
     apt-get clean
-RUN pip3 install redis==7.1.0 --break-system-packages
+# RUN pip3 install redis==7.1.0 --break-system-packages
 # Copy the just built from stage 0
 COPY --from=builder /artifacts/. /
 
@@ -65,15 +64,18 @@ COPY --from=builder /artifacts/. /
 # the gain for this will be minimal in size but will reduce layer count.
 COPY build.rc ver.current /
 RUN mkdir -p /build
-COPY build.d/ospd-openvas.sh /build.d/. 
-RUN bash /build.d/ospd-openvas.sh
-COPY build.d/gvm-tool.sh /build.d/
-RUN bash /build.d/gvm-tool.sh
-COPY build.d/gb-feed-sync.sh /build.d/
-RUN bash /build.d/gb-feed-sync.sh
-# library links
-COPY build.d/links.sh /build.d/
-RUN bash /build.d/links.sh
+COPY build.d/python-bits.sh /build.d/
+RUN bash /build.d/python-bits.sh 
+
+# COPY build.d/ospd-openvas.sh /build.d/ 
+# RUN bash /build.d/ospd-openvas.sh
+# COPY build.d/gvm-tool.sh /build.d/
+# RUN bash /build.d/gvm-tool.sh
+# COPY build.d/gb-feed-sync.sh /build.d/
+# RUN bash /build.d/gb-feed-sync.sh
+
+
+
 
 # This needs consolidation
 COPY confs/ /

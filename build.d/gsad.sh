@@ -1,33 +1,36 @@
-#!/bin/bash
-echo  "Procs $(nproc)" > /usr/local/include/BuildProcs
-INSTALL_PREFIX="/usr/local/"
+#!/usr/bin/env bash
 set -Eeuo pipefail
-# Source this for the latest release versions
-. build.rc
-. build.d/env.sh
-cd /build
-# Now we build gsad
-GSAD_VERSION=$(echo $gsad| sed "s/^v\(.*$\)/\1/")
-curl -f -L https://github.com/greenbone/gsad/archive/refs/tags/v$GSAD_VERSION.tar.gz -o gsad-$GSAD_VERSION.tar.gz
-tar xvf gsad-$GSAD_VERSION.tar.gz
-cd /build/*/
-# Implement ICS GSA Mods
-BUILDDIR=$(pwd)
-echo "BUILDDIR $BUILDDIR"
-patch -p1 < /ics-gsa/ics-gsad.patch
 
-#/ics-gsa/scripts/gsad-mods.sh $BUILDDIR
+. /build.rc
+. /build.d/env.sh
 
-cmake /build/gsad-$GSAD_VERSION \
-	-DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX \
-	-DCMAKE_BUILD_TYPE=Release \
-	-DSYSCONFDIR=/usr/local/etc \
-	-DLOCALSTATEDIR=/var \
-	-DGVMD_RUN_DIR=/run/gvmd \
-	-DGSAD_RUN_DIR=/run/gsad \
-	-DLOGROTATE_DIR=/etc/logrotate.d
+echo "Building gsad ${gsad}"
+prepare_greenbone_source "gsad" "$gsad"
 
-DESTDIR=/artifacts make install
+[[ -f /ics-gsa/ics-gsad.patch ]] || {
+    echo "Missing required patch: /ics-gsa/ics-gsad.patch" >&2
+    exit 1
+}
 
-cd /build
-rm -rf *
+cd "$SOURCE_DIR"
+patch --batch --forward -p1 < /ics-gsa/ics-gsad.patch
+
+BUILD_DIR="${SOURCE_DIR}/build"
+
+cmake \
+    -S "$SOURCE_DIR" \
+    -B "$BUILD_DIR" \
+    -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DSYSCONFDIR="$SYSCONFDIR" \
+    -DLOCALSTATEDIR="$LOCALSTATEDIR" \
+    -DGVM_LOG_DIR="$GVM_LOG_DIR" \
+    -DGVMD_RUN_DIR=/run/gvmd \
+    -DGSAD_RUN_DIR=/run/gsad \
+    -DLOGROTATE_DIR=/etc/logrotate.d
+
+cmake --build "$BUILD_DIR" --parallel "$BUILD_JOBS"
+stage_cmake_install "$BUILD_DIR"
+
+cleanup_build_source
+echo "gsad build complete"

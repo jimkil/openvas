@@ -1,24 +1,24 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -Eeuo pipefail
-# Source this for the latest release versions
-. build.rc
-. build.d/env.sh
 
-echo "Building openvas_smb"
-cd /build
-wget --no-verbose https://github.com/greenbone/openvas-smb/archive/$openvas_smb.tar.gz
-tar -zxf $openvas_smb.tar.gz
+. /build.rc
+. /build.d/env.sh
 
-cd /build/*/
-mkdir build
-cd build
+echo "Building openvas-smb ${openvas_smb}"
+prepare_greenbone_source "openvas-smb" "$openvas_smb"
 
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j$(nproc)
-make install
-cd /build
-rm -rf *
-echo "Build openvas_smb complete"
-echo "Cleaning up"
-# Copy these to / because gvmd and openvas depend on gvm-libs and openvas-smb
-cp -rp /artifacts/* / || true
+BUILD_DIR="${SOURCE_DIR}/build"
+
+cmake \
+    -S "$SOURCE_DIR" \
+    -B "$BUILD_DIR" \
+    -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
+    -DCMAKE_BUILD_TYPE=Release
+
+cmake --build "$BUILD_DIR" --parallel "$BUILD_JOBS"
+
+# openvas-scanner links against openvas-smb during its build.
+install_cmake_builder_dependency "$BUILD_DIR"
+
+cleanup_build_source
+echo "openvas-smb build complete"

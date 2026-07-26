@@ -1,48 +1,45 @@
-#!/bin/bash
-INSTALL_DIR="/usr/local/"
+#!/usr/bin/env bash
 set -Eeuo pipefail
 
-. build.rc
-. build.d/env.sh
+. /build.rc
+. /build.d/env.sh
 
-apt-get update
+echo "Building pg-gvm ${pg_gvm}"
+prepare_greenbone_source "pg-gvm" "$pg_gvm"
 
-echo "Building pg-gvm"
-cd /build
-wget --no-verbose "https://github.com/greenbone/pg-gvm/archive/$pg_gvm.tar.gz"
-tar -zxf "$pg_gvm.tar.gz"
+BASE_PATH="$PATH"
+read -r -a PG_VERSIONS <<< "${PG_GVM_VERSIONS:-13 15}"
 
-cd /build/*/      # e.g. /build/pg-gvm-22.6.12
-mkdir -p build
-cd build
+for PGVER in "${PG_VERSIONS[@]}"; do
+    BUILD_DIR="${SOURCE_DIR}/build-pg${PGVER}"
+    PG_BIN_DIR="/usr/lib/postgresql/${PGVER}/bin"
+    PGCONFIG_BIN="${PG_BIN_DIR}/pg_config"
+    PG_SERVER_INCLUDE="/usr/include/postgresql/${PGVER}/server"
 
-for PGVER in 13 15; do
-  echo "Building pg-gvm for postgresql-${PGVER}"
+    [[ -x "$PGCONFIG_BIN" ]] || {
+        echo "Missing ${PGCONFIG_BIN}; install postgresql-server-dev-${PGVER}" >&2
+        exit 1
+    }
+    [[ -d "$PG_SERVER_INCLUDE" ]] || {
+        echo "Missing PostgreSQL server headers: ${PG_SERVER_INCLUDE}" >&2
+        exit 1
+    }
 
-  apt-get install -y "postgresql-server-dev-${PGVER}"
+    echo "Building pg-gvm for PostgreSQL ${PGVER}"
+    rm -rf "$BUILD_DIR"
+    export PATH="${PG_BIN_DIR}:${BASE_PATH}"
 
-  # Make sure we pick the correct pg_config for this build
-  export PATH="/usr/lib/postgresql/${PGVER}/bin:${PATH}"
+    cmake \
+        -S "$SOURCE_DIR" \
+        -B "$BUILD_DIR" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DPGCONFIG="$PGCONFIG_BIN" \
+        -DPostgreSQL_TYPE_INCLUDE_DIR="$PG_SERVER_INCLUDE"
 
-  # Tell CMake explicitly which pg_config to use (matches find_program(PGCONFIG))
-  PGCONFIG_BIN="/usr/lib/postgresql/${PGVER}/bin/pg_config"
-
-  # Start with a clean build dir for this version
-  rm -rf "build-pg${PGVER}"
-
-  echo "=== Configuring pg-gvm for PostgreSQL ${PGVER} ==="
-  cmake -B "build-pg${PGVER}" -S .. \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DPostgreSQL_TYPE_INCLUDE_DIR="/usr/include/postgresql/${PGVER}/server" \
-    -DPGCONFIG="${PGCONFIG_BIN}" \
-    -DCMAKE_C_FLAGS="-I/usr/include/postgresql/${PGVER}/server"
-
-  echo "=== Building pg-gvm for PostgreSQL ${PGVER} ==="
-  cmake --build "build-pg${PGVER}"
-
-  echo "=== Installing pg-gvm for PostgreSQL ${PGVER} ==="
-  DESTDIR=/artifacts cmake --install "build-pg${PGVER}"
+    cmake --build "$BUILD_DIR" --parallel "$BUILD_JOBS"
+    stage_cmake_install "$BUILD_DIR"
 done
 
-cd /build
-rm -rf *
+export PATH="$BASE_PATH"
+cleanup_build_source
+echo "pg-gvm build complete"

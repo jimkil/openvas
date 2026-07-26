@@ -1,59 +1,92 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -Eeuo pipefail
-# Source this for the latest release versions
-. build.rc
-. build.d/env.sh
-echo "Building openvas_scanner"   
-cd /build
-wget --no-verbose https://github.com/greenbone/openvas-scanner/archive/$openvas.tar.gz
-tar -zxf $openvas.tar.gz
-cd /build/*/
 
-# Install dev dependency
+. /build.rc
+. /build.d/env.sh
 
-mkdir -p build
-cd build
+echo "Building openvas-scanner ${openvas}"
+prepare_greenbone_source "openvas-scanner" "$openvas"
 
-cmake -DCMAKE_BUILD_TYPE=Release ..
-#cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-g3" -DCMAKE_CXX_FLAGS="-g3" ..
-make #-j$(nproc)
-make install
-# install rust to build openvas
-cd ..
-#export RUST_BACKTRACE=full
-#export CARGO_PROFILE_RELEASE_BUILD_OVERRIDE_DEBUG=true 
-#CFLAGS="-fcommon"
-#CPPFLAGS="-fcommon"
-apt install -y libcurl4-gnutls-dev
-curl -o rustup.sh https://sh.rustup.rs
-bash ./rustup.sh -y
-. "$HOME/.cargo/env"   
-cd rust
-tar xvf /rust/crates.tar
-# Build openvasd
-cd src/openvasd
-#cargo fetch --locked
-#cargo build --frozen --release -vv
-cargo build --release 
+BUILD_DIR="${SOURCE_DIR}/build"
+OPENVAS_BUILD_JOBS="${OPENVAS_BUILD_JOBS:-$BUILD_JOBS}"
 
-cd ../scannerctl
-#cargo fetch --locked
-#cargo build --frozen --release -vv
+cmake \
+    -S "$SOURCE_DIR" \
+    -B "$BUILD_DIR" \
+    -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DINSTALL_OLD_SYNC_SCRIPT=OFF \
+    -DSYSCONFDIR="$SYSCONFDIR" \
+    -DLOCALSTATEDIR="$LOCALSTATEDIR" \
+    -DGVM_LOG_DIR="$GVM_LOG_DIR" \
+    -DOPENVAS_FEED_LOCK_PATH=/var/lib/openvas/feed-update.lock \
+    -DOPENVAS_RUN_DIR=/run/ospd
+
+cmake --build "$BUILD_DIR" --parallel "$OPENVAS_BUILD_JOBS"
+
+# The Rust build may need scanner libraries and headers in the active builder.
+install_cmake_builder_dependency "$BUILD_DIR"
+
+RUST_DIR="${SOURCE_DIR}/rust"
+[[ -d "$RUST_DIR" ]] || {
+    echo "Rust source directory not found: ${RUST_DIR}" >&2
+    exit 1
+}
+
+# Preserve the existing pre-fetched Cargo content workflow.
+if [[ -f /rust/crates.tar ]]; then
+    tar -xf /rust/crates.tar -C "$RUST_DIR"
+fi
+
+# Install rustup only when the builder base does not already provide it.
+if ! command -v rustup >/dev/null 2>&1; then
+    curl --proto '=https' --tlsv1.2 --fail --silent --show-error \
+        https://sh.rustup.rs -o /tmp/rustup-init.sh
+    sh /tmp/rustup-init.sh -y --profile minimal --default-toolchain none
+    rm -f /tmp/rustup-init.sh
+fi
+
+CARGO_ENV="${CARGO_HOME:-$HOME/.cargo}/env"
+if [[ -f "$CARGO_ENV" ]]; then
+    # shellcheck source=/dev/null
+    . "$CARGO_ENV"
+fi
+
+command -v rustup >/dev/null 2>&1 || {
+    echo "rustup is not available after installation" >&2
+    exit 1
+}
+command -v cargo >/dev/null 2>&1 || {
+    echo "cargo is not available after rustup initialization" >&2
+    exit 1
+}
+
+RUST_TOOLCHAIN="${OPENVAS_RUST_TOOLCHAIN:-}"
+if [[ -z "$RUST_TOOLCHAIN" && -f "${RUST_DIR}/rust-toolchain.toml" ]]; then
+    RUST_TOOLCHAIN="$(sed -n 's/^[[:space:]]*channel[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "${RUST_DIR}/rust-toolchain.toml" | head -n1)"
+fi
+
+if [[ -n "$RUST_TOOLCHAIN" ]]; then
+    rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+    rustup override set "$RUST_TOOLCHAIN" --path "$RUST_DIR"
+fi
+
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/cargo-target}"
+
+cd "$RUST_DIR"
 cargo build --release
-cd ../..
-echo "#####################################################"
-echo "#####################################################"
-echo "#####################################################"
-find / -name openvasd
-find / -name scannerctl
-find / -name redis-openvas.conf
-echo "#####################################################"
-echo "#####################################################"
-echo "#####################################################"
-echo "Copy openvasd binaries to $INSTALL_ROOT"
-cp -v ./target/release/openvasd $INSTALL_ROOT/bin/
-cp -v ./target/release/scannerctl $INSTALL_ROOT/bin/
-mkdir -p ${INSTALL_ROOT}etc/redis/
-cp -v ../config/redis-openvas.conf $INSTALL_ROOT/etc/redis/
-cd /build
-rm -rf *
+
+install -Dm755 \
+    "${CARGO_TARGET_DIR}/release/openvasd" \
+    "${INSTALL_ROOT}/bin/openvasd"
+
+install -Dm755 \
+    "${CARGO_TARGET_DIR}/release/scannerctl" \
+    "${INSTALL_ROOT}/bin/scannerctl"
+
+install -Dm644 \
+    "${SOURCE_DIR}/config/redis-openvas.conf" \
+    "${DESTDIR}/etc/redis/redis-openvas.conf"
+
+cleanup_build_source
+echo "openvas-scanner and Rust utilities build complete"

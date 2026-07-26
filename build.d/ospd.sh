@@ -1,12 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -Eeuo pipefail
-# Source this for the latest release versions
-. build.rc
-echo "Building ospd"
-cd /build
-wget --no-verbose https://github.com/greenbone/ospd/archive/$ospd.tar.gz
-tar -zxf $ospd.tar.gz
-cd /build/*/
-python3 -m pip install .
-cd /build
-rm -rf *
+
+. /build.rc
+
+# ospd is bundled inside the ospd-openvas package for the selected releases.
+# Installing the unmaintained standalone ospd repository can overwrite that
+# bundled package with an older and incompatible version.
+echo "Skipping standalone ospd ${ospd:-unknown}: ospd is bundled with ospd-openvas."

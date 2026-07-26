@@ -38,6 +38,8 @@ RUN bash /build.d/pg-gvm.sh
 COPY ics-gsa /ics-gsa
 COPY build.d/gsad.sh /build.d
 RUN bash /build.d/gsad.sh
+COPY build.d/python-bits.sh /build.d/
+RUN bash /build.d/python-bits.sh 
 # Stage 1: Start again with the ovasbase. Dependancies already installed
 # This target is for the image with no database
 # Makes rebuilds for data refresh and scripting changes faster. 
@@ -63,9 +65,7 @@ COPY --from=builder /artifacts/. /
 # create a single script that installs all the python stuffs and then deletes all the source.
 # the gain for this will be minimal in size but will reduce layer count.
 COPY build.rc ver.current /
-RUN mkdir -p /build
-COPY build.d/python-bits.sh /build.d/
-RUN bash /build.d/python-bits.sh 
+
 
 # COPY build.d/ospd-openvas.sh /build.d/ 
 # RUN bash /build.d/ospd-openvas.sh

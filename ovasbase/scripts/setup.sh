@@ -41,28 +41,6 @@ echo "install required packages"
 PACKAGES=$(cat scripts/package-list)
 apt-get install -yq --no-install-recommends $PACKAGES
 
-python3 -m venv /opt/venv \
-    && /opt/venv/bin/python -m pip install --no-cache-dir --upgrade \
-        pip \
-        setuptools \
-        defusedxml \
-        python-gnupg \
-        lxml \
-        packaging \
-        paho-mqtt \
-        psutil \
-        redis \
-        impacket \
-        redis==7.1.0 \
-        wrapt
-PATH="/opt/venv/bin:${PATH}"
-
-rm -rf \
-        /root/.cache/pip \
-        /tmp/* \
-        /var/tmp/*
-
-ln -s /usr/local/bin/wmiexec.py /usr/local/bin/impacket-wmiexec
 
 # add the gvm users
 echo "Creating GVM system user and group"

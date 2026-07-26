@@ -1,5 +1,6 @@
 services:
   openvas:
+    hostname: openvas
     ports:
       - "8080:9392"
     environment:

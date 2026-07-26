@@ -117,7 +117,7 @@ elif [ -z $arch ]; then
 	ARM="true"
 fi
 # Make the version # in the image meta data consistent
-# This will leave the 
+
 if [ "$tag" != "latest" ] && [ "$tag" != "beta" ] && [ "$tag" != "test" ]; then
 	echo $tag > ver.current
 fi
@@ -260,7 +260,7 @@ if [ $RUNAFTER == "true" ]; then
 	if [ "$tag" != "beta" ]; then
 		docker pull immauss/openvas:$tag
 	fi
-	docker run -d --name $tag -e SKIPSYNC=true -p 8080:9392 $RUNOPTIONS immauss/openvas:$tag 
+	docker run -d --name $tag --hostname openvas.${tag} -e SKIPSYNC=true -p 8080:9392 $RUNOPTIONS immauss/openvas:$tag 
 	docker logs -f $tag
 fi
 

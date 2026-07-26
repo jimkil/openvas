@@ -127,7 +127,6 @@ procps
 psmisc
 publicsuffix
 python3
-python3-venv
 redis-server
 rpcsvc-proto
 rpm

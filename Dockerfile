@@ -1,20 +1,17 @@
-# Environment variables for all
-
 # Stage 0: 
 # Start with ovasbase with running dependancies installed.
 FROM immauss/ovasbase:beta AS builder
-
 # Ensure apt doesn't ask any questions 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=C.UTF-8
 ARG TAG
 ENV VER="$TAG"
 ARG TARGETARCH
-ENV PATH="/opt/venv/bin:${PATH}"
 
-# Build everything that requires a compiler here and install to /artifacts for copy to 2nd stage.
-# we don't care about layer count here, in fact multiple layers helps when there are problems witha build
-# as the previous layers will be cached and reduce build time when troubleshooing issues
+# Build everything that requires a compiler here and install to /artifacts for copy to 
+# 2nd stage. we don't care about layer count here, in fact multiple layers helps when 
+# there are problems witha build as the previous layers will be cached and reduce build 
+# time when troubleshooing issues
 
 RUN mkdir /build.d
 COPY build.rc ver.current /
@@ -40,6 +37,9 @@ COPY build.d/gsad.sh /build.d
 RUN bash /build.d/gsad.sh
 COPY build.d/python-bits.sh /build.d/
 RUN bash /build.d/python-bits.sh 
+COPY build.d/validate-artifacts.sh /build.d/
+RUN bash /build.d/validate-artifacts.sh
+
 # Stage 1: Start again with the ovasbase. Dependancies already installed
 # This target is for the image with no database
 # Makes rebuilds for data refresh and scripting changes faster. 
@@ -50,34 +50,15 @@ LABEL maintainer="scott@immauss.com" \
       source="https://github.com/immauss/openvas"     
 EXPOSE 9392
 ENV LANG=C.UTF-8
-# Some of this needs to be moved to ovasbase
+
 RUN set -eux; \
     apt-get update; \
     apt-get -y upgrade; \
     apt-get -y autoremove --purge; \
-    apt-get clean
-# RUN pip3 install redis==7.1.0 --break-system-packages
+    apt-get clean \
+    rm -rf /var/lib/apt/lists/*
 # Copy the just built from stage 0
 COPY --from=builder /artifacts/. /
-
-# The python bits. 
-# these need to be rolled into a single layer that removes any excess bits. 
-# create a single script that installs all the python stuffs and then deletes all the source.
-# the gain for this will be minimal in size but will reduce layer count.
-COPY build.rc ver.current /
-
-
-# COPY build.d/ospd-openvas.sh /build.d/ 
-# RUN bash /build.d/ospd-openvas.sh
-# COPY build.d/gvm-tool.sh /build.d/
-# RUN bash /build.d/gvm-tool.sh
-# COPY build.d/gb-feed-sync.sh /build.d/
-# RUN bash /build.d/gb-feed-sync.sh
-
-
-
-
-# This needs consolidation
 COPY confs/ /
 COPY build.d/links.sh /
 RUN bash /links.sh 
@@ -96,8 +77,6 @@ COPY ver.current /ver.current
 # allow nmap to send e.g. UDP or TCP SYN probes without root permissions
 #ENV NMAP_PRIVILEGED=1
 #RUN setcap cap_net_raw,cap_net_admin,cap_net_bind_service+eip /usr/bin/nmap
-# Healthcheck needs be an on image script that will know what service is running and check it. 
-# Current image function stored in /usr/local/etc/running-as
 HEALTHCHECK --interval=300s \
             --start-period=300s \
             --timeout=120s \
@@ -114,9 +93,6 @@ COPY globals.sql.xz /usr/lib/globals.sql.xz
 COPY gvmd.sql.xz /usr/lib/gvmd.sql.xz
 COPY var-lib.tar.xz /usr/lib/var-lib.tar.xz
 COPY scripts/* /scripts/
-
-# Healthcheck needs be an on image script that will know what service is running and check it. 
-# Current image function stored in /usr/local/etc/running-as
 HEALTHCHECK --interval=300s \
             --start-period=300s \
             --timeout=120s \

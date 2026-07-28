@@ -1,6 +1,6 @@
 # Stage 0: 
 # Start with ovasbase with running dependancies installed.
-FROM immauss/ovasbase:latest AS builder
+FROM immauss/ovasbase:builder AS builder
 # Ensure apt doesn't ask any questions 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=C.UTF-8
@@ -12,13 +12,22 @@ ARG TARGETARCH
 # 2nd stage. we don't care about layer count here, in fact multiple layers helps when 
 # there are problems witha build as the previous layers will be cached and reduce build 
 # time when troubleshooing issues
+# Move These to builder image
+## 
+# RUN mkdir /build.d
 
-RUN mkdir /build.d
-COPY build.rc ver.current /
-COPY build.d/package-list-build /build.d/
+# COPY build.d/package-list-build /build.d/
+
+# COPY build.d/build-prereqs.sh /build.d/
+# RUN bash /build.d/build-prereqs.sh
+
+
+# ^^^^^^^
+# Move to builder image
+RUN apt-get update && \
+    apt-get -y upgrade 
 COPY build.d/env.sh /build.d
-COPY build.d/build-prereqs.sh /build.d/
-RUN bash /build.d/build-prereqs.sh
+COPY build.rc ver.current /
 COPY build.d/update-certs.sh /build.d/
 RUN bash /build.d/update-certs.sh
 COPY build.d/gvm-libs.sh /build.d/

@@ -1,6 +1,6 @@
 # Stage 0: 
 # Start with ovasbase with running dependancies installed.
-FROM immauss/ovasbase:beta AS builder
+FROM immauss/ovasbase:latest AS builder
 # Ensure apt doesn't ask any questions 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=C.UTF-8
@@ -43,7 +43,7 @@ RUN bash /build.d/validate-artifacts.sh
 # Stage 1: Start again with the ovasbase. Dependancies already installed
 # This target is for the image with no database
 # Makes rebuilds for data refresh and scripting changes faster. 
-FROM immauss/ovasbase:beta AS slim
+FROM immauss/ovasbase:latest AS slim
 LABEL maintainer="scott@immauss.com" \
       version="$VER-slim" \
       url="https://hub.docker.com/r/immauss/openvas" \
@@ -55,7 +55,7 @@ RUN set -eux; \
     apt-get update; \
     apt-get -y upgrade; \
     apt-get -y autoremove --purge; \
-    apt-get clean \
+    apt-get clean; \
     rm -rf /var/lib/apt/lists/*
 # Copy the just built from stage 0
 COPY --from=builder /artifacts/. /

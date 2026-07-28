@@ -9,8 +9,6 @@ gnupg
 gnutls-bin
 gpgsm
 krb5-locales
-lib32gcc-s1
-lib32stdc++6
 libabsl20240722
 libalgorithm-diff-perl
 libalgorithm-diff-xs-perl
@@ -86,7 +84,6 @@ libpci3
 libperl5.40
 libproc2-0
 libpsl5t64
-libquadmath0
 libradcli4
 librav1e0.7
 librtmp1

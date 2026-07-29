@@ -30,7 +30,7 @@ If applicable, add screenshots to help explain your problem.
 **Environment (please complete the following information):**
  - OS: [e.g. Ubuntu 20.10]
  - Memory available to OS:  [ 4G ]
- - Container environment used with version: [ docker , podman, kubernets, etc ]
+ - Container environment used with version: [ docker , podman, kubernetes, etc ]
 
 **logs** ( commands assume the container name is 'openvas' )
 Please attach the output from one of the following commands:

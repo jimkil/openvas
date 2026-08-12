@@ -213,7 +213,7 @@ Now with more health checks !!
 Moving sucks. But we are (kind of) settled now and I finally polished of the 22.4 branch. The main branch is now based on 22.4 and works with upgrades from 21.4 in single and multi-container mode. If you've paid attention to Greenbone, you know that the community edition now has a container setup available so you might be wondering if I'll continue with this. I will. Mainly because my setup has a few advantages. 
 
 1. Mine is packaged with a ready to use database. Even using the containers GB is offering with the feeds already downloaded, you have still wait for gvmd to build the database. My image can be up and ready to scan in < 15 minutes. 
-2. The single container option. GB is not offering a single container option. For the quick scan here or there, the single container seems to be the prefered method of many. 
+2. The single container option. GB is not offering a single container option. For the quick scan here or there, the single container seems to be the preferred method of many. 
 3. I actually enjoy working on this. 
 
 Also, make sure you check out the announcement over at GB for the [new features of 22.4](https://forum.greenbone.net/t/greenbone-community-edition-22-4-stable-initial-release-2022-07-25/12638)
@@ -320,14 +320,14 @@ After a long wait, the 21.04.07 is live. It's actually been up for a week or so,
 - The weekly rebuilds are running a little behind. I still need to workout the automation for the weekly rebuilds, but now with two images since the DB is not compatabile between the latest (with arm64 & amd64) and the armv7 tags. 
 - - - -
 ### 19 July 2021 ###
-- Buster. When i started this journey, I only wanted to add a few features I thought were missing to an already existing container. I guess I let it get a little out of hand. One of things that bothered me about the orignal, that I didn't have the time deal with, was that it was running on a base container image using Ubuntu. Nothing against Ubuntu, but I know the Greenbone Devs build on Debian Buster. With all the dependancy issues I was having trying to get the ArmV7 image to build, I decided it needed to be done. So I finally took the time to rebuild the whole thing using Debian Buster. The idea is that this should reduce the number of problems I have with dependencies and be more in line with Greenbone.
+- Buster. When i started this journey, I only wanted to add a few features I thought were missing to an already existing container. I guess I let it get a little out of hand. One of things that bothered me about the orignal, that I didn't have the time deal with, was that it was running on a base container image using Ubuntu. Nothing against Ubuntu, but I know the Greenbone Devs build on Debian Buster. With all the dependency issues I was having trying to get the ArmV7 image to build, I decided it needed to be done. So I finally took the time to rebuild the whole thing using Debian Buster. The idea is that this should reduce the number of problems I have with dependencies and be more in line with Greenbone.
 Just one glitch:
 
    Postgresql 12
 
    When I moved to 20.08, I went to the current Postgressql with Ubuntu, which was 12.  But Greenbone is still standardizing on 11. Now I could build the image on 11, but then anyone with an existing DB (myself included would have to go throught the pain of downgrading the DB. This doesn't work well with the idea of having an easy to use slim container. So, I now have an image, based on Buster, and using Postgresql 12. 
    
-   The Bad news. Postgresql12 is not available on ArmV7. But since I've never had a working ArmV7 image, there shoudln't be anyone with a Postgresql12 DB. So ... there will be an ArmV7 image, but it will be seperate and live with it's own tag in GitHub and Docker Hub, while the AMD64 & Arm64 images will be a multi-arch image as the latest. I know I can build ArmV7 on Buster, but only with Postgresql11. 
+   The Bad news. Postgresql12 is not available on ArmV7. But since I've never had a working ArmV7 image, there shoudln't be anyone with a Postgresql12 DB. So ... there will be an ArmV7 image, but it will be separate and live with it's own tag in GitHub and Docker Hub, while the AMD64 & Arm64 images will be a multi-arch image as the latest. I know I can build ArmV7 on Buster, but only with Postgresql11. 
    
    ## Status: ## 
    - The multi-arch image is almost ready. (Expected by 22 July)
@@ -336,7 +336,7 @@ Just one glitch:
      
 - - - -
 ### 12 July 2021 ###
-- armv7 ..... is failing to build gvmLibs because of dependancies. At the moment, the latest tag only has amd64 & arm64
+- armv7 ..... is failing to build gvmLibs because of dependencies. At the moment, the latest tag only has amd64 & arm64
 
 - Scott
 
@@ -356,7 +356,7 @@ Just one glitch:
 
 - - - -
 ### 14 June 2021 ###
-- A new approach. Now that Docker is going to be charging for using thier build environment .... I decided to go a step further. I'm going to be doing the builds on my own infrastructure, so why not go for a multi-arch build. Something I don't think docker hub offers anyway. So the first (of hopefully many) multi-arch images is now on docker hub. The tag is simple "multi". I can't stress enough that this is very BETA at the moment. I've not done any serious testing with it. Please let me know if you find any isues on any platform. And maybe drop me a note if you have succes too. ( here, a twitter @immauss ... ) 
+- A new approach. Now that Docker is going to be charging for using their build environment .... I decided to go a step further. I'm going to be doing the builds on my own infrastructure, so why not go for a multi-arch build. Something I don't think docker hub offers anyway. So the first (of hopefully many) multi-arch images is now on docker hub. The tag is simple "multi". I can't stress enough that this is very BETA at the moment. I've not done any serious testing with it. Please let me know if you find any isues on any platform. And maybe drop me a note if you have succes too. ( here, a twitter @immauss ... ) 
 
 -Scott
 

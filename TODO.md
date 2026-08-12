@@ -1,7 +1,7 @@
 # Wishlist
 - [ ] Let`s encrypt 
 	- [ ] In current build ?
-	- [x] In seperate reverse proxy
+	- [x] In separate reverse proxy
 - [ ] Write some build / test scripts to automate testing of new builds. 
 	- [ ]use GMP/OSP to validate a scan against a scannable container
 	- [ ] use compose to spin up openvas &  scannable, then script the scan creation and execution
